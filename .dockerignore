@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Visual Studio
+.vs
+.vscode
+*.sln.DotSettings
+*.user
+*.suo
+
+# Build outputs
+bin/
+obj/
+dist/
+build/
+
+# Dependencies
+node_modules/
+packages/
+.nuget/
+
+# IDE files
+*.swp
+*.swo
+*~
+.DS_Store
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+azure-pipelines.yml
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Test results
+TestResults/
+*.trx
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+docs/
+*.md
+
+# Others
+*.log
+.vscode/

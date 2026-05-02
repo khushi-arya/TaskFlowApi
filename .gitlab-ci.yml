@@ -1,0 +1,117 @@
+# GitLab CI Pipeline for TaskManager API
+# Replaces Azure DevOps pipeline
+
+stages:
+  - build
+  - test
+  - docker
+
+variables:
+  DOTNET_VERSION: '8.0'
+  BUILD_CONFIGURATION: 'Release'
+  IMAGE_NAME: 'taskmanager-api'
+  # Set these in GitLab CI/CD Variables:
+  # - CONTAINER_REGISTRY_URL: your-registry.azurecr.io or docker.io
+  # - CONTAINER_REGISTRY_USERNAME: <username>
+  # - CONTAINER_REGISTRY_PASSWORD: <password>
+  # - CONTAINER_REGISTRY_EMAIL: <email> (optional, for some registries)
+
+# Build stage
+build:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
+  script:
+    - echo "Starting build stage..."
+    - dotnet restore TaskManager.sln
+    - if [ $? -ne 0 ]; then echo "Restore failed"; exit 1; fi
+    - dotnet build TaskManager.sln --configuration ${BUILD_CONFIGURATION}
+    - if [ $? -ne 0 ]; then echo "Build failed"; exit 1; fi
+    - echo "Build completed successfully"
+  artifacts:
+    paths:
+      - '**/bin/${BUILD_CONFIGURATION}/**'
+      - '**/obj/**'
+    expire_in: 1 hour
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+  tags:
+    - docker
+  only:
+    - main
+    - merge_requests
+  except:
+    - README.md
+    - docs/
+
+# Test stage
+test:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
+  script:
+    - echo "Starting test stage..."
+    - dotnet test TaskManager.Tests/TaskManager.Tests.csproj --configuration ${BUILD_CONFIGURATION} --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
+    - if [ $? -ne 0 ]; then echo "Tests failed"; exit 1; fi
+    - echo "All tests passed"
+  artifacts:
+    paths:
+      - '**/test-results.trx'
+      - '**/coverage.cobertura.xml'
+    reports:
+      junit: '**/test-results.trx'
+    expire_in: 30 days
+  dependencies:
+    - build
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+  tags:
+    - docker
+  only:
+    - main
+    - merge_requests
+  except:
+    - README.md
+    - docs/
+
+# Docker build and push stage
+docker:
+  stage: docker
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: "/certs"
+  script:
+    - echo "Starting Docker build and push stage..."
+    - echo "Building Docker image..."
+    - docker build -f Dockerfile -t ${CONTAINER_REGISTRY_URL}/${IMAGE_NAME}:${CI_COMMIT_SHA:0:8} -t ${CONTAINER_REGISTRY_URL}/${IMAGE_NAME}:latest .
+    - if [ $? -ne 0 ]; then echo "Docker build failed"; exit 1; fi
+    - echo "Logging into container registry..."
+    - docker login -u ${CONTAINER_REGISTRY_USERNAME} -p ${CONTAINER_REGISTRY_PASSWORD} ${CONTAINER_REGISTRY_URL}
+    - if [ $? -ne 0 ]; then echo "Docker login failed"; exit 1; fi
+    - echo "Pushing Docker image with tag ${CI_COMMIT_SHA:0:8}..."
+    - docker push ${CONTAINER_REGISTRY_URL}/${IMAGE_NAME}:${CI_COMMIT_SHA:0:8}
+    - if [ $? -ne 0 ]; then echo "Docker push (commit tag) failed"; exit 1; fi
+    - echo "Pushing Docker image with tag latest..."
+    - docker push ${CONTAINER_REGISTRY_URL}/${IMAGE_NAME}:latest
+    - if [ $? -ne 0 ]; then echo "Docker push (latest tag) failed"; exit 1; fi
+    - echo "Docker build and push completed successfully"
+  dependencies: []
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+  tags:
+    - docker
+  only:
+    - main
+  except:
+    - README.md
+    - docs/

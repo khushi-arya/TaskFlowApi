@@ -1,0 +1,72 @@
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options
+.vs/
+.vscode/
+
+# Visual Studio Code
+.vscode
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Test Results
+TestResults/
+*.trx
+*.coverage
+
+# NuGet
+*.nupkg
+*.snupkg
+nuget.config
+
+# Build folder
+publish/
+
+# SQLite database
+*.db
+*.db-shm
+*.db-wal
+
+# SonarQube
+.sonarqube/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# CI/CD
+azure-pipelines.yml.local
+.github/workflows/
+
+# Docker
+.docker/
+docker-compose.local.yml
+
+# Package Manager
+packages/
+.nuget/NuGet.Config
+.nuget/NuGet.exe

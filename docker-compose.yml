@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  taskmanager-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - DATABASE_CONNECTION_STRING=Data Source=taskmanager.db
+      - ENABLE_SWAGGER=true
+    volumes:
+      - ./TaskManager.API:/app/TaskManager.API:ro
+      - ./taskmanager.db:/app/taskmanager.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/swagger"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    container_name: taskmanager-api
+
+networks:
+  default:
+    name: taskmanager-network
