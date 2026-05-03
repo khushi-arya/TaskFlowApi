@@ -15,7 +15,7 @@ jobs:
 
       - name: Push to GitLab
         run: |
-          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.com/USERNAME/REPO.git
+          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.com/khushiary-a/TaskFlowApi.git
           git push gitlab main --force
 
       - name: Trigger GitLab Pipeline
