@@ -5,6 +5,7 @@ using TaskManager.Application.Services;
 using TaskManager.Core.DTOs;
 using TaskManager.Core.Entities;
 using TaskManager.Core.Interfaces;
+using TaskEntity = TaskManager.Core.Entities.Task;
 
 namespace TaskManager.Tests.Services;
 
@@ -28,10 +29,10 @@ public class TaskServiceTests
     public async Task GetAllTasksAsync_WithValidTasks_ReturnsAllTasks()
     {
         // Arrange
-        var tasks = new List<Task>
+        var tasks = new List<TaskEntity>
         {
-            new Task { Id = 1, Title = "Task 1", Description = "Desc 1", Priority = 1, Status = TaskStatus.Pending, CreatedAt = DateTime.UtcNow },
-            new Task { Id = 2, Title = "Task 2", Description = "Desc 2", Priority = 2, Status = TaskStatus.InProgress, CreatedAt = DateTime.UtcNow }
+            new TaskEntity { Id = 1, Title = "Task 1", Description = "Desc 1", Priority = 1, Status = TaskStatus.Pending, CreatedAt = DateTime.UtcNow },
+            new TaskEntity { Id = 2, Title = "Task 2", Description = "Desc 2", Priority = 2, Status = TaskStatus.InProgress, CreatedAt = DateTime.UtcNow }
         };
 
         _mockRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(tasks);
@@ -50,7 +51,7 @@ public class TaskServiceTests
     public async Task GetAllTasksAsync_WithEmptyList_ReturnsEmptyCollection()
     {
         // Arrange
-        _mockRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Task>());
+        _mockRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<TaskEntity>());
 
         // Act
         var result = await _taskService.GetAllTasksAsync();
@@ -69,7 +70,7 @@ public class TaskServiceTests
     {
         // Arrange
         var taskId = 1;
-        var task = new Task
+        var task = new TaskEntity
         {
             Id = taskId,
             Title = "Test Task",
@@ -97,7 +98,7 @@ public class TaskServiceTests
     {
         // Arrange
         var taskId = 999;
-        _mockRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((Task?)null);
+        _mockRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((TaskEntity?)null);
 
         // Act
         var result = await _taskService.GetTaskByIdAsync(taskId);
@@ -123,7 +124,7 @@ public class TaskServiceTests
             DueDate = DateTime.UtcNow.AddDays(5)
         };
 
-        var createdTask = new Task
+        var createdTask = new TaskEntity
         {
             Id = 1,
             Title = createDto.Title,
@@ -134,7 +135,7 @@ public class TaskServiceTests
             CreatedAt = DateTime.UtcNow
         };
 
-        _mockRepository.Setup(r => r.CreateAsync(It.IsAny<Task>())).ReturnsAsync(createdTask);
+        _mockRepository.Setup(r => r.CreateAsync(It.IsAny<TaskEntity>())).ReturnsAsync(createdTask);
 
         // Act
         var result = await _taskService.CreateTaskAsync(createDto);
@@ -159,7 +160,7 @@ public class TaskServiceTests
             DueDate = null
         };
 
-        var createdTask = new Task
+        var createdTask = new TaskEntity
         {
             Id = 1,
             Title = createDto.Title,
@@ -169,7 +170,7 @@ public class TaskServiceTests
             CreatedAt = DateTime.UtcNow
         };
 
-        _mockRepository.Setup(r => r.CreateAsync(It.IsAny<Task>())).ReturnsAsync(createdTask);
+        _mockRepository.Setup(r => r.CreateAsync(It.IsAny<TaskEntity>())).ReturnsAsync(createdTask);
 
         // Act
         var result = await _taskService.CreateTaskAsync(createDto);
@@ -196,7 +197,7 @@ public class TaskServiceTests
             Priority = 4
         };
 
-        var existingTask = new Task
+        var existingTask = new TaskEntity
         {
             Id = taskId,
             Title = "Old Title",
@@ -206,7 +207,7 @@ public class TaskServiceTests
             CreatedAt = DateTime.UtcNow
         };
 
-        var updatedTask = new Task
+        var updatedTask = new TaskEntity
         {
             Id = taskId,
             Title = updateDto.Title,
@@ -217,7 +218,7 @@ public class TaskServiceTests
         };
 
         _mockRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync(existingTask);
-        _mockRepository.Setup(r => r.UpdateAsync(It.IsAny<Task>())).ReturnsAsync(updatedTask);
+        _mockRepository.Setup(r => r.UpdateAsync(It.IsAny<TaskEntity>())).ReturnsAsync(updatedTask);
 
         // Act
         var result = await _taskService.UpdateTaskAsync(taskId, updateDto);
@@ -259,7 +260,7 @@ public class TaskServiceTests
             DueDate = null
         };
 
-        var existingTask = new Task
+        var existingTask = new TaskEntity
         {
             Id = taskId,
             Title = "Original Title",
@@ -270,7 +271,7 @@ public class TaskServiceTests
         };
 
         _mockRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync(existingTask);
-        _mockRepository.Setup(r => r.UpdateAsync(It.IsAny<Task>())).ReturnsAsync(existingTask);
+        _mockRepository.Setup(r => r.UpdateAsync(It.IsAny<TaskEntity>())).ReturnsAsync(existingTask);
 
         // Act
         var result = await _taskService.UpdateTaskAsync(taskId, updateDto);
@@ -322,7 +323,7 @@ public class TaskServiceTests
     {
         // Arrange
         var taskId = 1;
-        var task = new Task
+        var task = new TaskEntity
         {
             Id = taskId,
             Title = "Task to Complete",
@@ -331,7 +332,7 @@ public class TaskServiceTests
         };
 
         _mockRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync(task);
-        _mockRepository.Setup(r => r.UpdateAsync(It.IsAny<Task>())).ReturnsAsync(task);
+        _mockRepository.Setup(r => r.UpdateAsync(It.IsAny<TaskEntity>())).ReturnsAsync(task);
 
         // Act
         var result = await _taskService.CompleteTaskAsync(taskId);
@@ -349,12 +350,12 @@ public class TaskServiceTests
     {
         // Arrange
         var taskId = 999;
-        _mockRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((Task?)null);
+        _mockRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((TaskEntity?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() => _taskService.CompleteTaskAsync(taskId));
         _mockRepository.Verify(r => r.GetByIdAsync(taskId), Times.Once);
-        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<Task>()), Times.Never);
+        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<TaskEntity>()), Times.Never);
     }
 
     #endregion

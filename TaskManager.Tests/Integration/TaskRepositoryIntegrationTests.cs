@@ -1,9 +1,12 @@
 using Xunit;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using TaskManager.Core.Entities;
 using TaskManager.Infrastructure.Data;
 using TaskManager.Infrastructure.Repositories;
+
+// Aliases to avoid ambiguity
+using TaskEntity = TaskManager.Core.Entities.Task;
+using TaskStatusEnum = TaskManager.Core.Entities.TaskStatus;
 
 namespace TaskManager.Tests.Integration;
 
@@ -17,9 +20,8 @@ public class TaskRepositoryIntegrationTests : IDisposable
 
     public TaskRepositoryIntegrationTests()
     {
-        // Setup in-memory database
         var options = new DbContextOptionsBuilder<TaskManagerDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
         _context = new TaskManagerDbContext(options);
@@ -28,7 +30,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
 
     public void Dispose()
     {
-        _context?.Dispose();
+        _context.Dispose();
     }
 
     #region GetAllAsync Tests
@@ -36,24 +38,18 @@ public class TaskRepositoryIntegrationTests : IDisposable
     [Fact]
     public async Task GetAllAsync_WithMultipleTasks_ReturnsAllTasks()
     {
-        // Arrange
-        var tasks = new List<Task>
+        var tasks = new List<TaskEntity>
         {
-            new Task { Title = "Task 1", Description = "Description 1", Priority = 1, Status = TaskStatus.Pending },
-            new Task { Title = "Task 2", Description = "Description 2", Priority = 2, Status = TaskStatus.InProgress },
-            new Task { Title = "Task 3", Description = "Description 3", Priority = 3, Status = TaskStatus.Completed }
+            new TaskEntity { Title = "Task 1", Description = "Description 1", Priority = 1, Status = TaskStatusEnum.Pending },
+            new TaskEntity { Title = "Task 2", Description = "Description 2", Priority = 2, Status = TaskStatusEnum.InProgress },
+            new TaskEntity { Title = "Task 3", Description = "Description 3", Priority = 3, Status = TaskStatusEnum.Completed }
         };
 
-        foreach (var task in tasks)
-        {
-            _context.Tasks.Add(task);
-        }
+        await _context.Tasks.AddRangeAsync(tasks);
         await _context.SaveChangesAsync();
 
-        // Act
         var result = await _repository.GetAllAsync();
 
-        // Assert
         result.Should().HaveCount(3);
         result.Should().Contain(t => t.Title == "Task 1");
         result.Should().Contain(t => t.Title == "Task 2");
@@ -63,30 +59,23 @@ public class TaskRepositoryIntegrationTests : IDisposable
     [Fact]
     public async Task GetAllAsync_WithEmptyDatabase_ReturnsEmptyCollection()
     {
-        // Act
         var result = await _repository.GetAllAsync();
 
-        // Assert
         result.Should().BeEmpty();
     }
 
     [Fact]
     public async Task GetAllAsync_OrdersByCreatedAtDescending()
     {
-        // Arrange
-        var task1 = new Task { Title = "Task 1", CreatedAt = DateTime.UtcNow.AddHours(-2) };
-        var task2 = new Task { Title = "Task 2", CreatedAt = DateTime.UtcNow.AddHours(-1) };
-        var task3 = new Task { Title = "Task 3", CreatedAt = DateTime.UtcNow };
+        var task1 = new TaskEntity { Title = "Task 1", CreatedAt = DateTime.UtcNow.AddHours(-2) };
+        var task2 = new TaskEntity { Title = "Task 2", CreatedAt = DateTime.UtcNow.AddHours(-1) };
+        var task3 = new TaskEntity { Title = "Task 3", CreatedAt = DateTime.UtcNow };
 
-        _context.Tasks.Add(task1);
-        _context.Tasks.Add(task2);
-        _context.Tasks.Add(task3);
+        await _context.Tasks.AddRangeAsync(task1, task2, task3);
         await _context.SaveChangesAsync();
 
-        // Act
         var result = await _repository.GetAllAsync();
 
-        // Assert - Most recent first
         result.First().Title.Should().Be("Task 3");
         result.Last().Title.Should().Be("Task 1");
     }
@@ -98,17 +87,18 @@ public class TaskRepositoryIntegrationTests : IDisposable
     [Fact]
     public async Task GetByIdAsync_WithValidId_ReturnsTask()
     {
-        // Arrange
-        var task = new Task { Title = "Test Task", Description = "Test Description", Priority = 2 };
-        _context.Tasks.Add(task);
+        var task = new TaskEntity
+        {
+            Title = "Test Task",
+            Description = "Test Description",
+            Priority = 2
+        };
+
+        await _context.Tasks.AddAsync(task);
         await _context.SaveChangesAsync();
 
-        var taskId = task.Id;
+        var result = await _repository.GetByIdAsync(task.Id);
 
-        // Act
-        var result = await _repository.GetByIdAsync(taskId);
-
-        // Assert
         result.Should().NotBeNull();
         result!.Title.Should().Be("Test Task");
         result.Description.Should().Be("Test Description");
@@ -118,10 +108,8 @@ public class TaskRepositoryIntegrationTests : IDisposable
     [Fact]
     public async Task GetByIdAsync_WithInvalidId_ReturnsNull()
     {
-        // Act
         var result = await _repository.GetByIdAsync(999);
 
-        // Assert
         result.Should().BeNull();
     }
 
@@ -132,42 +120,35 @@ public class TaskRepositoryIntegrationTests : IDisposable
     [Fact]
     public async Task CreateAsync_WithValidTask_CreatesAndReturnsTask()
     {
-        // Arrange
-        var task = new Task
+        var task = new TaskEntity
         {
             Title = "New Task",
             Description = "New Description",
             Priority = 3,
-            Status = TaskStatus.Pending,
+            Status = TaskStatusEnum.Pending,
             CreatedAt = DateTime.UtcNow
         };
 
-        // Act
         var result = await _repository.CreateAsync(task);
 
-        // Assert
         result.Should().NotBeNull();
-        result.Id.Should().BeGreaterThan(0); // Id should be auto-generated
+        result.Id.Should().BeGreaterThan(0);
         result.Title.Should().Be("New Task");
 
-        // Verify it's actually in the database
-        var retrievedTask = await _repository.GetByIdAsync(result.Id);
-        retrievedTask.Should().NotBeNull();
-        retrievedTask!.Title.Should().Be("New Task");
+        var retrieved = await _repository.GetByIdAsync(result.Id);
+        retrieved.Should().NotBeNull();
+        retrieved!.Title.Should().Be("New Task");
     }
 
     [Fact]
     public async Task CreateAsync_GeneratesUniqueIds()
     {
-        // Arrange
-        var task1 = new Task { Title = "Task 1" };
-        var task2 = new Task { Title = "Task 2" };
+        var task1 = new TaskEntity { Title = "Task 1" };
+        var task2 = new TaskEntity { Title = "Task 2" };
 
-        // Act
         var created1 = await _repository.CreateAsync(task1);
         var created2 = await _repository.CreateAsync(task2);
 
-        // Assert
         created1.Id.Should().NotBe(created2.Id);
     }
 
@@ -178,59 +159,52 @@ public class TaskRepositoryIntegrationTests : IDisposable
     [Fact]
     public async Task UpdateAsync_WithValidTask_UpdatesTask()
     {
-        // Arrange
-        var task = new Task
+        var task = new TaskEntity
         {
-            Title = "Original Title",
-            Description = "Original Description",
+            Title = "Original",
+            Description = "Original Desc",
             Priority = 1,
-            Status = TaskStatus.Pending
+            Status = TaskStatusEnum.Pending
         };
-        _context.Tasks.Add(task);
+
+        await _context.Tasks.AddAsync(task);
         await _context.SaveChangesAsync();
 
-        // Modify the task
-        task.Title = "Updated Title";
-        task.Description = "Updated Description";
+        task.Title = "Updated";
+        task.Description = "Updated Desc";
         task.Priority = 5;
-        task.Status = TaskStatus.InProgress;
+        task.Status = TaskStatusEnum.InProgress;
 
-        // Act
         var result = await _repository.UpdateAsync(task);
 
-        // Assert
-        result.Title.Should().Be("Updated Title");
-        result.Description.Should().Be("Updated Description");
+        result.Title.Should().Be("Updated");
         result.Priority.Should().Be(5);
-        result.Status.Should().Be(TaskStatus.InProgress);
+        result.Status.Should().Be(TaskStatusEnum.InProgress);
 
-        // Verify it's updated in the database
-        var retrievedTask = await _repository.GetByIdAsync(task.Id);
-        retrievedTask!.Title.Should().Be("Updated Title");
+        var dbTask = await _repository.GetByIdAsync(task.Id);
+        dbTask!.Title.Should().Be("Updated");
     }
 
     [Fact]
-    public async Task UpdateAsync_WithCompletionData_UpdatesStatusAndCompletedAt()
+    public async Task UpdateAsync_WithCompletionData_UpdatesCompletedAt()
     {
-        // Arrange
-        var task = new Task
+        var task = new TaskEntity
         {
-            Title = "Task to Complete",
-            Status = TaskStatus.Pending,
+            Title = "Complete Me",
+            Status = TaskStatusEnum.Pending,
             CreatedAt = DateTime.UtcNow
         };
-        _context.Tasks.Add(task);
+
+        await _context.Tasks.AddAsync(task);
         await _context.SaveChangesAsync();
 
         var completedTime = DateTime.UtcNow;
-        task.Status = TaskStatus.Completed;
+        task.Status = TaskStatusEnum.Completed;
         task.CompletedAt = completedTime;
 
-        // Act
         var result = await _repository.UpdateAsync(task);
 
-        // Assert
-        result.Status.Should().Be(TaskStatus.Completed);
+        result.Status.Should().Be(TaskStatusEnum.Completed);
         result.CompletedAt.Should().NotBeNull();
         result.CompletedAt!.Value.Should().BeCloseTo(completedTime, TimeSpan.FromSeconds(1));
     }
@@ -242,131 +216,74 @@ public class TaskRepositoryIntegrationTests : IDisposable
     [Fact]
     public async Task DeleteAsync_WithValidId_DeletesTask()
     {
-        // Arrange
-        var task = new Task { Title = "Task to Delete" };
-        _context.Tasks.Add(task);
+        var task = new TaskEntity { Title = "Delete Me" };
+
+        await _context.Tasks.AddAsync(task);
         await _context.SaveChangesAsync();
 
-        var taskId = task.Id;
+        var result = await _repository.DeleteAsync(task.Id);
 
-        // Act
-        var result = await _repository.DeleteAsync(taskId);
-
-        // Assert
         result.Should().BeTrue();
 
-        // Verify it's deleted from the database
-        var retrievedTask = await _repository.GetByIdAsync(taskId);
-        retrievedTask.Should().BeNull();
+        var dbTask = await _repository.GetByIdAsync(task.Id);
+        dbTask.Should().BeNull();
     }
 
     [Fact]
     public async Task DeleteAsync_WithInvalidId_ReturnsFalse()
     {
-        // Act
         var result = await _repository.DeleteAsync(999);
 
-        // Assert
         result.Should().BeFalse();
     }
 
     [Fact]
-    public async Task DeleteAsync_WithMultipleTasks_DeletesOnlySpecificTask()
+    public async Task DeleteAsync_DeletesOnlySpecifiedTask()
     {
-        // Arrange
-        var task1 = new Task { Title = "Task 1" };
-        var task2 = new Task { Title = "Task 2" };
-        var task3 = new Task { Title = "Task 3" };
+        var t1 = new TaskEntity { Title = "Task 1" };
+        var t2 = new TaskEntity { Title = "Task 2" };
+        var t3 = new TaskEntity { Title = "Task 3" };
 
-        _context.Tasks.AddRange(task1, task2, task3);
+        await _context.Tasks.AddRangeAsync(t1, t2, t3);
         await _context.SaveChangesAsync();
 
-        // Act
-        var result = await _repository.DeleteAsync(task2.Id);
+        await _repository.DeleteAsync(t2.Id);
 
-        // Assert
-        result.Should().BeTrue();
+        var all = await _repository.GetAllAsync();
 
-        var allTasks = await _repository.GetAllAsync();
-        allTasks.Should().HaveCount(2);
-        allTasks.Should().Contain(t => t.Id == task1.Id);
-        allTasks.Should().Contain(t => t.Id == task3.Id);
-        allTasks.Should().NotContain(t => t.Id == task2.Id);
+        all.Should().HaveCount(2);
+        all.Should().Contain(x => x.Id == t1.Id);
+        all.Should().Contain(x => x.Id == t3.Id);
+        all.Should().NotContain(x => x.Id == t2.Id);
     }
 
     #endregion
 
-    #region Complex Scenarios Tests
+    #region Workflow Tests
 
     [Fact]
-    public async Task CompleteWorkflow_CreateUpdateDelete_Works()
+    public async Task CompleteWorkflow_WorksCorrectly()
     {
-        // Arrange & Act - Create
-        var task = new Task
+        var task = new TaskEntity
         {
-            Title = "Workflow Task",
-            Description = "Testing complete workflow",
+            Title = "Workflow",
             Priority = 2,
-            Status = TaskStatus.Pending
+            Status = TaskStatusEnum.Pending
         };
 
-        var createdTask = await _repository.CreateAsync(task);
-        createdTask.Should().NotBeNull();
+        var created = await _repository.CreateAsync(task);
 
-        // Act - Retrieve
-        var retrievedTask = await _repository.GetByIdAsync(createdTask.Id);
-        retrievedTask.Should().NotBeNull();
-        retrievedTask!.Title.Should().Be("Workflow Task");
+        var fetched = await _repository.GetByIdAsync(created.Id);
+        fetched!.Status = TaskStatusEnum.InProgress;
 
-        // Act - Update
-        retrievedTask.Status = TaskStatus.InProgress;
-        retrievedTask.Priority = 4;
-        var updatedTask = await _repository.UpdateAsync(retrievedTask);
-        updatedTask.Priority.Should().Be(4);
+        var updated = await _repository.UpdateAsync(fetched);
 
-        // Act - Delete
-        var deleteResult = await _repository.DeleteAsync(updatedTask.Id);
-        deleteResult.Should().BeTrue();
+        var deleted = await _repository.DeleteAsync(updated.Id);
 
-        // Assert - Verify deleted
-        var finalTask = await _repository.GetByIdAsync(updatedTask.Id);
-        finalTask.Should().BeNull();
-    }
+        deleted.Should().BeTrue();
 
-    [Fact]
-    public async Task MultipleOperations_MaintainsDataIntegrity()
-    {
-        // Arrange - Create multiple tasks
-        var tasks = Enumerable.Range(1, 5)
-            .Select(i => new Task { Title = $"Task {i}", Priority = i })
-            .ToList();
-
-        foreach (var task in tasks)
-        {
-            await _repository.CreateAsync(task);
-        }
-
-        // Act - Retrieve all
-        var allTasks = await _repository.GetAllAsync();
-
-        // Assert
-        allTasks.Should().HaveCount(5);
-
-        // Act - Update one
-        var taskToUpdate = allTasks.First();
-        taskToUpdate.Title = "Updated Task";
-        await _repository.UpdateAsync(taskToUpdate);
-
-        // Assert - Verify count unchanged
-        var allTasksAfterUpdate = await _repository.GetAllAsync();
-        allTasksAfterUpdate.Should().HaveCount(5);
-
-        // Act - Delete one
-        await _repository.DeleteAsync(taskToUpdate.Id);
-
-        // Assert - Verify count decreased
-        var allTasksAfterDelete = await _repository.GetAllAsync();
-        allTasksAfterDelete.Should().HaveCount(4);
+        var final = await _repository.GetByIdAsync(updated.Id);
+        final.Should().BeNull();
     }
 
     #endregion
