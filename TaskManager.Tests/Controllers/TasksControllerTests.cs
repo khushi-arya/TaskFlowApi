@@ -1,10 +1,14 @@
+using System.Threading.Tasks;
 using Xunit;
 using Moq;
 using FluentAssertions;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using TaskManager.API.Controllers;
 using TaskManager.Core.DTOs;
 using TaskManager.Core.Interfaces;
+using AsyncTask = System.Threading.Tasks.Task;
 
 namespace TaskManager.Tests.Controllers;
 
@@ -27,7 +31,7 @@ public class TasksControllerTests
     #region GetAllTasks Tests
 
     [Fact]
-    public async Task GetAllTasks_WithValidTasks_ReturnsOkResultWithTasks()
+    public async AsyncTask GetAllTasks_WithValidTasks_ReturnsOkResultWithTasks()
     {
         // Arrange
         var tasks = new List<TaskResponseDto>
@@ -51,7 +55,7 @@ public class TasksControllerTests
     }
 
     [Fact]
-    public async Task GetAllTasks_WithEmptyList_ReturnsOkResultWithEmptyCollection()
+    public async AsyncTask GetAllTasks_WithEmptyList_ReturnsOkResultWithEmptyCollection()
     {
         // Arrange
         var emptyTasks = new List<TaskResponseDto>();
@@ -71,7 +75,7 @@ public class TasksControllerTests
     #region GetTaskById Tests
 
     [Fact]
-    public async Task GetTaskById_WithValidId_ReturnsOkResultWithTask()
+    public async AsyncTask GetTaskById_WithValidId_ReturnsOkResultWithTask()
     {
         // Arrange
         var taskId = 1;
@@ -101,7 +105,7 @@ public class TasksControllerTests
     }
 
     [Fact]
-    public async Task GetTaskById_WithInvalidId_ReturnsNotFoundResult()
+    public async AsyncTask GetTaskById_WithInvalidId_ReturnsNotFoundResult()
     {
         // Arrange
         var taskId = 999;
@@ -121,7 +125,7 @@ public class TasksControllerTests
     #region CreateTask Tests
 
     [Fact]
-    public async Task CreateTask_WithValidDto_ReturnsCreatedAtActionResult()
+    public async AsyncTask CreateTask_WithValidDto_ReturnsCreatedAtActionResult()
     {
         // Arrange
         var createDto = new CreateTaskDto
@@ -159,7 +163,7 @@ public class TasksControllerTests
     }
 
     [Fact]
-    public async Task CreateTask_WithNullTitle_ValidationFailure()
+    public AsyncTask CreateTask_WithNullTitle_ValidationFailure()
     {
         // Arrange
         var createDto = new CreateTaskDto
@@ -177,6 +181,7 @@ public class TasksControllerTests
         // Act & Assert - Expecting service to throw validation error
         var action = () => _controller.CreateTask(createDto);
         // In a real scenario, FluentValidation middleware would catch this before controller
+        return AsyncTask.CompletedTask;
     }
 
     #endregion
@@ -184,7 +189,7 @@ public class TasksControllerTests
     #region UpdateTask Tests
 
     [Fact]
-    public async Task UpdateTask_WithValidId_ReturnsOkResultWithUpdatedTask()
+    public async AsyncTask UpdateTask_WithValidId_ReturnsOkResultWithUpdatedTask()
     {
         // Arrange
         var taskId = 1;
@@ -218,7 +223,7 @@ public class TasksControllerTests
     }
 
     [Fact]
-    public async Task UpdateTask_WithInvalidId_ReturnsNotFoundResult()
+    public async AsyncTask UpdateTask_WithInvalidId_ReturnsNotFoundResult()
     {
         // Arrange
         var taskId = 999;
@@ -241,7 +246,7 @@ public class TasksControllerTests
     #region DeleteTask Tests
 
     [Fact]
-    public async Task DeleteTask_WithValidId_ReturnsNoContentResult()
+    public async AsyncTask DeleteTask_WithValidId_ReturnsNoContentResult()
     {
         // Arrange
         var taskId = 1;
@@ -258,7 +263,7 @@ public class TasksControllerTests
     }
 
     [Fact]
-    public async Task DeleteTask_WithInvalidId_ReturnsNotFoundResult()
+    public async AsyncTask DeleteTask_WithInvalidId_ReturnsNotFoundResult()
     {
         // Arrange
         var taskId = 999;
@@ -278,7 +283,7 @@ public class TasksControllerTests
     #region CompleteTask Tests
 
     [Fact]
-    public async Task CompleteTask_WithValidId_ReturnsOkResultWithCompletedTask()
+    public async AsyncTask CompleteTask_WithValidId_ReturnsOkResultWithCompletedTask()
     {
         // Arrange
         var taskId = 1;
@@ -306,7 +311,7 @@ public class TasksControllerTests
     }
 
     [Fact]
-    public async Task CompleteTask_WithInvalidId_ReturnsNotFoundResult()
+    public AsyncTask CompleteTask_WithInvalidId_ReturnsNotFoundResult()
     {
         // Arrange
         var taskId = 999;
@@ -315,6 +320,7 @@ public class TasksControllerTests
 
         // Note: CompleteTask endpoint is POST /api/tasks/{id}/complete
         // Testing the logic that would handle this scenario
+        return AsyncTask.CompletedTask;
     }
 
     #endregion
@@ -322,7 +328,7 @@ public class TasksControllerTests
     #region Error Handling Tests
 
     [Fact]
-    public async Task Controller_WhenServiceThrows_LogsError()
+    public AsyncTask Controller_WhenServiceThrows_LogsError()
     {
         // Arrange
         var taskId = 1;
@@ -333,6 +339,7 @@ public class TasksControllerTests
         // In real scenario, exception middleware would handle this
         var action = () => _controller.GetTaskById(taskId);
         // Verify that logger would be called via middleware
+        return AsyncTask.CompletedTask;
     }
 
     #endregion

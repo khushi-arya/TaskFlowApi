@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Xunit;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,7 @@ using TaskManager.Infrastructure.Repositories;
 // Aliases to avoid ambiguity
 using TaskEntity = TaskManager.Core.Entities.Task;
 using TaskStatusEnum = TaskManager.Core.Entities.TaskStatus;
+using AsyncTask = System.Threading.Tasks.Task;
 
 namespace TaskManager.Tests.Integration;
 /// hello khushi arya 
@@ -36,7 +38,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     #region GetAllAsync Tests
 
     [Fact]
-    public async Task GetAllAsync_WithMultipleTasks_ReturnsAllTasks()
+    public async AsyncTask GetAllAsync_WithMultipleTasks_ReturnsAllTasks()
     {
         var tasks = new List<TaskEntity>
         {
@@ -57,7 +59,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAllAsync_WithEmptyDatabase_ReturnsEmptyCollection()
+    public async AsyncTask GetAllAsync_WithEmptyDatabase_ReturnsEmptyCollection()
     {
         var result = await _repository.GetAllAsync();
 
@@ -65,7 +67,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAllAsync_OrdersByCreatedAtDescending()
+    public async AsyncTask GetAllAsync_OrdersByCreatedAtDescending()
     {
         var task1 = new TaskEntity { Title = "Task 1", CreatedAt = DateTime.UtcNow.AddHours(-2) };
         var task2 = new TaskEntity { Title = "Task 2", CreatedAt = DateTime.UtcNow.AddHours(-1) };
@@ -85,7 +87,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     #region GetByIdAsync Tests
 
     [Fact]
-    public async Task GetByIdAsync_WithValidId_ReturnsTask()
+    public async AsyncTask GetByIdAsync_WithValidId_ReturnsTask()
     {
         var task = new TaskEntity
         {
@@ -106,7 +108,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task GetByIdAsync_WithInvalidId_ReturnsNull()
+    public async AsyncTask GetByIdAsync_WithInvalidId_ReturnsNull()
     {
         var result = await _repository.GetByIdAsync(999);
 
@@ -118,7 +120,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     #region CreateAsync Tests
 
     [Fact]
-    public async Task CreateAsync_WithValidTask_CreatesAndReturnsTask()
+    public async AsyncTask CreateAsync_WithValidTask_CreatesAndReturnsTask()
     {
         var task = new TaskEntity
         {
@@ -141,7 +143,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateAsync_GeneratesUniqueIds()
+    public async AsyncTask CreateAsync_GeneratesUniqueIds()
     {
         var task1 = new TaskEntity { Title = "Task 1" };
         var task2 = new TaskEntity { Title = "Task 2" };
@@ -157,7 +159,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     #region UpdateAsync Tests
 
     [Fact]
-    public async Task UpdateAsync_WithValidTask_UpdatesTask()
+    public async AsyncTask UpdateAsync_WithValidTask_UpdatesTask()
     {
         var task = new TaskEntity
         {
@@ -186,7 +188,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateAsync_WithCompletionData_UpdatesCompletedAt()
+    public async AsyncTask UpdateAsync_WithCompletionData_UpdatesCompletedAt()
     {
         var task = new TaskEntity
         {
@@ -214,7 +216,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     #region DeleteAsync Tests
 
     [Fact]
-    public async Task DeleteAsync_WithValidId_DeletesTask()
+    public async AsyncTask DeleteAsync_WithValidId_DeletesTask()
     {
         var task = new TaskEntity { Title = "Delete Me" };
 
@@ -230,7 +232,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task DeleteAsync_WithInvalidId_ReturnsFalse()
+    public async AsyncTask DeleteAsync_WithInvalidId_ReturnsFalse()
     {
         var result = await _repository.DeleteAsync(999);
 
@@ -238,7 +240,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task DeleteAsync_DeletesOnlySpecifiedTask()
+    public async AsyncTask DeleteAsync_DeletesOnlySpecifiedTask()
     {
         var t1 = new TaskEntity { Title = "Task 1" };
         var t2 = new TaskEntity { Title = "Task 2" };
@@ -262,7 +264,7 @@ public class TaskRepositoryIntegrationTests : IDisposable
     #region Workflow Tests
 
     [Fact]
-    public async Task CompleteWorkflow_WorksCorrectly()
+    public async AsyncTask CompleteWorkflow_WorksCorrectly()
     {
         var task = new TaskEntity
         {

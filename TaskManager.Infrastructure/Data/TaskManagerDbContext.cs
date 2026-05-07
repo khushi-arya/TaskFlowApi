@@ -5,7 +5,7 @@ using TaskManager.Core.Entities;
 
 public class TaskManagerDbContext : DbContext
 {
-    public required DbSet<Task> Tasks { get; set; }
+    public DbSet<Task> Tasks { get; set; } = null!;
 
     public TaskManagerDbContext(DbContextOptions<TaskManagerDbContext> options) : base(options)
     {

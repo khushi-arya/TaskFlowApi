@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Xunit;
 using Moq;
 using FluentAssertions;
@@ -6,6 +7,8 @@ using TaskManager.Core.DTOs;
 using TaskManager.Core.Entities;
 using TaskManager.Core.Interfaces;
 using TaskEntity = TaskManager.Core.Entities.Task;
+using AsyncTask = System.Threading.Tasks.Task;
+using TaskStatusEnum = TaskManager.Core.Entities.TaskStatus;
 
 namespace TaskManager.Tests.Services;
 
@@ -26,13 +29,13 @@ public class TaskServiceTests
     #region GetAllTasksAsync Tests
 
     [Fact]
-    public async Task GetAllTasksAsync_WithValidTasks_ReturnsAllTasks()
+    public async AsyncTask GetAllTasksAsync_WithValidTasks_ReturnsAllTasks()
     {
         // Arrange
         var tasks = new List<TaskEntity>
         {
-            new TaskEntity { Id = 1, Title = "Task 1", Description = "Desc 1", Priority = 1, Status = TaskStatus.Pending, CreatedAt = DateTime.UtcNow },
-            new TaskEntity { Id = 2, Title = "Task 2", Description = "Desc 2", Priority = 2, Status = TaskStatus.InProgress, CreatedAt = DateTime.UtcNow }
+            new TaskEntity { Id = 1, Title = "Task 1", Description = "Desc 1", Priority = 1, Status = TaskStatusEnum.Pending, CreatedAt = DateTime.UtcNow },
+            new TaskEntity { Id = 2, Title = "Task 2", Description = "Desc 2", Priority = 2, Status = TaskStatusEnum.InProgress, CreatedAt = DateTime.UtcNow }
         };
 
         _mockRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(tasks);
@@ -48,7 +51,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task GetAllTasksAsync_WithEmptyList_ReturnsEmptyCollection()
+    public async AsyncTask GetAllTasksAsync_WithEmptyList_ReturnsEmptyCollection()
     {
         // Arrange
         _mockRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<TaskEntity>());
@@ -66,7 +69,7 @@ public class TaskServiceTests
     #region GetTaskByIdAsync Tests
 
     [Fact]
-    public async Task GetTaskByIdAsync_WithValidId_ReturnsTask()
+    public async AsyncTask GetTaskByIdAsync_WithValidId_ReturnsTask()
     {
         // Arrange
         var taskId = 1;
@@ -76,7 +79,7 @@ public class TaskServiceTests
             Title = "Test Task",
             Description = "Test Description",
             Priority = 3,
-            Status = TaskStatus.Pending,
+            Status = TaskStatusEnum.Pending,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -94,7 +97,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task GetTaskByIdAsync_WithInvalidId_ReturnsNull()
+    public async AsyncTask GetTaskByIdAsync_WithInvalidId_ReturnsNull()
     {
         // Arrange
         var taskId = 999;
@@ -113,7 +116,7 @@ public class TaskServiceTests
     #region CreateTaskAsync Tests
 
     [Fact]
-    public async Task CreateTaskAsync_WithValidDto_CreatesTask()
+    public async AsyncTask CreateTaskAsync_WithValidDto_CreatesTask()
     {
         // Arrange
         var createDto = new CreateTaskDto
@@ -131,7 +134,7 @@ public class TaskServiceTests
             Description = createDto.Description,
             Priority = createDto.Priority,
             DueDate = createDto.DueDate,
-            Status = TaskStatus.Pending,
+            Status = TaskStatusEnum.Pending,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -145,11 +148,11 @@ public class TaskServiceTests
         result.Title.Should().Be("New Task");
         result.Priority.Should().Be(2);
         result.Status.Should().Be("Pending");
-        _mockRepository.Verify(r => r.CreateAsync(It.IsAny<Task>()), Times.Once);
+        _mockRepository.Verify(r => r.CreateAsync(It.IsAny<TaskEntity>()), Times.Once);
     }
 
     [Fact]
-    public async Task CreateTaskAsync_WithNullDescription_CreatesTaskSuccessfully()
+    public async AsyncTask CreateTaskAsync_WithNullDescription_CreatesTaskSuccessfully()
     {
         // Arrange
         var createDto = new CreateTaskDto
@@ -166,7 +169,7 @@ public class TaskServiceTests
             Title = createDto.Title,
             Description = null,
             Priority = 1,
-            Status = TaskStatus.Pending,
+            Status = TaskStatusEnum.Pending,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -186,7 +189,7 @@ public class TaskServiceTests
     #region UpdateTaskAsync Tests
 
     [Fact]
-    public async Task UpdateTaskAsync_WithValidId_UpdatesTask()
+    public async AsyncTask UpdateTaskAsync_WithValidId_UpdatesTask()
     {
         // Arrange
         var taskId = 1;
@@ -203,7 +206,7 @@ public class TaskServiceTests
             Title = "Old Title",
             Description = "Old Description",
             Priority = 1,
-            Status = TaskStatus.Pending,
+            Status = TaskStatusEnum.Pending,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -213,7 +216,7 @@ public class TaskServiceTests
             Title = updateDto.Title,
             Description = updateDto.Description,
             Priority = updateDto.Priority ?? 1,
-            Status = TaskStatus.Pending,
+            Status = TaskStatusEnum.Pending,
             CreatedAt = existingTask.CreatedAt
         };
 
@@ -229,26 +232,26 @@ public class TaskServiceTests
         result.Description.Should().Be("Updated Description");
         result.Priority.Should().Be(4);
         _mockRepository.Verify(r => r.GetByIdAsync(taskId), Times.Once);
-        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<Task>()), Times.Once);
+        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<TaskEntity>()), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateTaskAsync_WithInvalidId_ThrowsKeyNotFoundException()
+    public async AsyncTask UpdateTaskAsync_WithInvalidId_ThrowsKeyNotFoundException()
     {
         // Arrange
         var taskId = 999;
         var updateDto = new UpdateTaskDto { Title = "Updated Title" };
 
-        _mockRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((Task?)null);
+        _mockRepository.Setup(r => r.GetByIdAsync(taskId)).ReturnsAsync((TaskEntity?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() => _taskService.UpdateTaskAsync(taskId, updateDto));
         _mockRepository.Verify(r => r.GetByIdAsync(taskId), Times.Once);
-        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<Task>()), Times.Never);
+        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<TaskEntity>()), Times.Never);
     }
 
     [Fact]
-    public async Task UpdateTaskAsync_WithPartialUpdate_UpdatesOnlyProvidedFields()
+    public async AsyncTask UpdateTaskAsync_WithPartialUpdate_UpdatesOnlyProvidedFields()
     {
         // Arrange
         var taskId = 1;
@@ -266,7 +269,7 @@ public class TaskServiceTests
             Title = "Original Title",
             Description = "Original Description",
             Priority = 2,
-            Status = TaskStatus.Pending,
+            Status = TaskStatusEnum.Pending,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -285,7 +288,7 @@ public class TaskServiceTests
     #region DeleteTaskAsync Tests
 
     [Fact]
-    public async Task DeleteTaskAsync_WithValidId_DeletesTaskSuccessfully()
+    public async AsyncTask DeleteTaskAsync_WithValidId_DeletesTaskSuccessfully()
     {
         // Arrange
         var taskId = 1;
@@ -300,7 +303,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task DeleteTaskAsync_WithInvalidId_ReturnsFalse()
+    public async AsyncTask DeleteTaskAsync_WithInvalidId_ReturnsFalse()
     {
         // Arrange
         var taskId = 999;
@@ -319,7 +322,7 @@ public class TaskServiceTests
     #region CompleteTaskAsync Tests
 
     [Fact]
-    public async Task CompleteTaskAsync_WithValidId_CompletesTask()
+    public async AsyncTask CompleteTaskAsync_WithValidId_CompletesTask()
     {
         // Arrange
         var taskId = 1;
@@ -327,7 +330,7 @@ public class TaskServiceTests
         {
             Id = taskId,
             Title = "Task to Complete",
-            Status = TaskStatus.Pending,
+            Status = TaskStatusEnum.Pending,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -339,14 +342,14 @@ public class TaskServiceTests
 
         // Assert
         result.Should().BeTrue();
-        task.Status.Should().Be(TaskStatus.Completed);
+        task.Status.Should().Be(TaskStatusEnum.Completed);
         task.CompletedAt.Should().NotBeNull();
         _mockRepository.Verify(r => r.GetByIdAsync(taskId), Times.Once);
-        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<Task>()), Times.Once);
+        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<TaskEntity>()), Times.Once);
     }
 
     [Fact]
-    public async Task CompleteTaskAsync_WithInvalidId_ThrowsKeyNotFoundException()
+    public async AsyncTask CompleteTaskAsync_WithInvalidId_ThrowsKeyNotFoundException()
     {
         // Arrange
         var taskId = 999;
