@@ -10,11 +10,8 @@ This is a **Task Manager API** that provides CRUD operations for managing tasks.
 - ✅ Dependency Injection
 - ✅ Entity Framework Core with SQLite
 - ✅ FluentValidation
-- ✅ Comprehensive unit tests with xUnit and Moq
 - ✅ API documentation with Swagger
 - ✅ CI/CD pipelines (Azure DevOps, GitHub Actions)
-- ✅ Docker containerization
-- ✅ SonarQube code quality scanning
 
 ## 🏗️ Project Structure
 
